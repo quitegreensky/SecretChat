@@ -3,19 +3,24 @@ import string
 import random
 import json
 from libs.encryption import Cipher
-import base64
-
+import threading
+import time
+from colorama import init
+from colorama import Fore, Back, Style
+init()
 
 url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
+chat_ids = "1"
 
 
 class Messanger():
 
-    def __init__(self, db_name, url) -> None:
+    def __init__(self, db_name, url, chat_ids) -> None:
         self.db_name = db_name
         self.url = url
         self.secret = "secret".encode("utf-8")
+        self.chat_ids = chat_ids
 
     def save_js(self, dic):
         try:
@@ -49,28 +54,35 @@ class Messanger():
             msg_data = msg["msg_data"]
             msg_type = msg["msg_type"]
             if msg_type=="txt":
-                self.log( cipher_obj.decrypt(bytes(msg_data, "utf-8")) )
+                recv_data = cipher_obj.decrypt(bytes(msg_data, "utf-8"))
+                self.log(f"{Back.GREEN}{chat_id}: {recv_data}")
             else:
                 pass
 
-    def update_message(self, chat_id):
-        data = {
-            "chat_id": chat_id,
-        }
-        res = requests.get(url+"/updates", json=data)
-        if not res.ok:
-            self.log("unable to get updates")
-            return False
+    def update_message(self):
+        t = threading.Thread(target=self._update_message)
+        t.start()
 
-        res_data = res.json()
-        db = self.load_js()
+    def _update_message(self, *args):
+        while True:
+            data = {
+                "chat_id": self.chat_ids,
+            }
+            res = requests.get(url+"/updates", json=data)
+            if not res.ok:
+                self.log(Back.RED+"Unable to get updates")
+                continue
 
-        for res_chat_id, chat_data in res_data.items():
-            if not db.get(res_chat_id):
-                db[res_chat_id] = {}
-            db[res_chat_id].update(chat_data)
-            self.new_message_handler(res_chat_id, chat_data)
-        self.save_js(db)
+            res_data = res.json()
+            db = self.load_js()
+
+            for res_chat_id, chat_data in res_data.items():
+                if not db.get(res_chat_id):
+                    db[res_chat_id] = {}
+                db[res_chat_id].update(chat_data)
+                self.new_message_handler(res_chat_id, chat_data)
+            self.save_js(db)
+            time.sleep(3)
 
     def send_message(self, data, path=None):
         cipher_obj = Cipher(self.secret)
@@ -86,12 +98,10 @@ class Messanger():
         if not res.ok:
             self.log("failed to send msg")
             return False
-        self.log("sent")
+        self.log(f"{Fore.GREEN}Sent")
         return True
 
-
-app = Messanger(db_name, url)
-
+app = Messanger(db_name, url, chat_ids)
 
 data = {
     "chat_id": "1",
@@ -100,4 +110,4 @@ data = {
     "msg_data": "hello"
 }
 app.send_message(data, "image.png")
-app.update_message("1")
+app.update_message()
