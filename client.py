@@ -3,6 +3,8 @@ import string
 import random
 import json
 from libs.encryption import Cipher
+import base64
+
 
 url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
@@ -49,9 +51,7 @@ class Messanger():
             if msg_type=="txt":
                 self.log( cipher_obj.decrypt(bytes(msg_data, "utf-8")) )
             else:
-                fname = f"{self.random_str()}.{msg_type}"
-                with open(fname, "wb") as f:
-                    f.write( bytes(cipher_obj.decrypt(msg_data)) )
+                pass
 
     def update_message(self, chat_id):
         data = {
@@ -77,9 +77,7 @@ class Messanger():
         if data["msg_type"]=="txt":
             _data = data["msg_data"]
         else:
-            _data = None
-            with open(path, "rb") as f:
-                _data =  str(f.read())[1:].replace("'","")
+            pass
 
         data["msg_data"] = cipher_obj.encrypt(_data).decode("utf-8")
 
@@ -98,7 +96,7 @@ app = Messanger(db_name, url)
 data = {
     "chat_id": "1",
     "chat_secret": "secret",
-    "msg_type": "png",
+    "msg_type": "txt",
     "msg_data": "hello"
 }
 app.send_message(data, "image.png")
