@@ -151,7 +151,7 @@ class Messanger():
 
 app = Messanger(db_name, url, chat_ids, configs)
 app.update_message()
-
+app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 while True:
     input_data = input(f"{Fore.CYAN}")
     if len(input_data)==0:
