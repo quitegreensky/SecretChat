@@ -50,27 +50,24 @@ def timestamp():
 @app.route("/send", methods=["POST"])
 def send_msg():
     data = request.json
-    chat_ids = data["chat_id"]
+    chat_id = data["chat_id"]
     username = data["username"]
     msg_type = data["msg_type"]
     msg_data = data["msg_data"]
 
-    if not msg_validation(username, chat_ids, msg_type, msg_data):
+    if not msg_validation(username, chat_id, msg_type, msg_data):
         return make_response("error", 400)
 
-    chat_id_list = chat_ids.split(",")
-
     db = load_js()
-    for chat_id in chat_id_list:
-        if not db.get(chat_id):
-            db[chat_id] = []
-        db[chat_id].append({
-            "msg_uuid": str(timestamp()),
-            "msg_type": msg_type,
-            "msg_data": msg_data,
-            "username": username,
-            "timestamp": str(timestamp())
-        })
+    if not db.get(chat_id):
+        db[chat_id] = []
+    db[chat_id].append({
+        "msg_uuid": str(timestamp()),
+        "msg_type": msg_type,
+        "msg_data": msg_data,
+        "username": username,
+        "timestamp": str(timestamp())
+    })
 
     save_js(db)
     return make_response("ok", 200)

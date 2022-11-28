@@ -171,8 +171,7 @@ t_stop = False
 t = app.update_message()
 
 while True:
-    input_data = input(f"{Fore.CYAN}")
-    app.log()
+    input_data = input("")
     if len(input_data)==0:
         continue
 
