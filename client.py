@@ -14,8 +14,8 @@ import getpass
 
 init()
 
-# url = "http://chat.agent42.ir"
-url = "http://127.0.0.1:5000"
+url = "http://chat.agent42.ir"
+# url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
 chat_ids = "3"
 configs = "configs.json"
@@ -106,9 +106,12 @@ class Messanger():
     def update_message(self):
         t = threading.Thread(target=self._update_message)
         t.start()
+        return t
 
     def _update_message(self, *args):
         while True:
+            if t_stop:
+                return
             data = {
                 "chat_id": self.chat_id,
                 "count": self.configs["count"]
@@ -164,7 +167,9 @@ app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 secret = getpass.getpass(f"{Fore.RED}Enter your secret: ")
 app.set_secret(secret)
 
-app.update_message()
+t_stop = False
+t = app.update_message()
+
 while True:
     input_data = input(f"{Fore.CYAN}")
     if len(input_data)==0:
@@ -172,6 +177,11 @@ while True:
 
     if input_data=="--help":
         continue
+
+    if input_data=="--end":
+        t_stop = True
+        t.join()
+        exit()
 
     data = {
         "msg_type": "txt",
