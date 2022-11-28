@@ -9,12 +9,13 @@ import hashlib
 from Crypto import Random
 from Crypto.Cipher import AES
 import getpass
+import os
 
 init()
 
 configs = "configs.json"
 
-t_stop = False
+os.environ["t_stop"] = False
 
 class Cipher:
     def __init__(self, key, **kw):
@@ -100,7 +101,7 @@ class Messanger():
 
     def _update_message(self, *args):
         while True:
-            if t_stop:
+            if os.environ["t_stop"]:
                 return
             data = {
                 "chat_id": self.chat_id,
@@ -151,29 +152,32 @@ class Messanger():
             pass
         return recv_data
 
+def main():
+    app = Messanger(configs)
+    app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
+    secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
+    app.set_secret(secret)
 
-app = Messanger(configs)
-app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
-secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
-app.set_secret(secret)
+    t = app.update_message()
 
-t = app.update_message()
+    while True:
+        input_data = input("")
+        if len(input_data)==0:
+            continue
 
-while True:
-    input_data = input("")
-    if len(input_data)==0:
-        continue
+        if input_data=="--help":
+            continue
 
-    if input_data=="--help":
-        continue
+        if input_data=="--end":
+            os.environ["t_stop"] = True
+            t.join()
+            exit()
 
-    if input_data=="--end":
-        t_stop = True
-        t.join()
-        exit()
+        data = {
+            "msg_type": "txt",
+            "msg_data": input_data
+        }
+        app.send_message(data)
 
-    data = {
-        "msg_type": "txt",
-        "msg_data": input_data
-    }
-    app.send_message(data)
+if __name__=="__main__":
+    main()
