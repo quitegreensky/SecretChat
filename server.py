@@ -4,6 +4,7 @@ import random
 import string
 import datetime
 
+random.seed()
 
 app = Flask(__name__)
 db_name = "mydb.json"
@@ -39,7 +40,7 @@ def msg_validation(*args):
     return True
 
 def random_str():
-    res = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    res = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     return res
 
 
@@ -94,7 +95,6 @@ def get_msg():
     except:
         return make_response("error", 400)
 
-    chat_ids_list = chat_id.split(",")
     db = load_js()
 
     data = {}
@@ -106,9 +106,9 @@ def get_msg():
         if not data.get(chat_id):
             data[chat_id] = []
         data[chat_id].append(msg_data)
-        _count+=1
-        if _count >= count:
-            break
+        # _count+=1
+        # if _count >= count:
+        #     break
 
     save_js(db)
     return jsonify(data)
