@@ -17,7 +17,6 @@ init()
 url = "http://chat.agent42.ir"
 # url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
-chat_ids = "3"
 configs = "configs.json"
 
 
@@ -52,11 +51,11 @@ class Cipher:
 
 class Messanger():
 
-    def __init__(self, db_name, url, chat_ids, configs) -> None:
+    def __init__(self, db_name, url, configs) -> None:
         self.db_name = db_name
         self.url = url
-        self.chat_id = chat_ids
         self.configs = self.load_js(configs)
+        self.chat_id = self.configs["chat_id"]
         self.secret = None
         self.handled_msg = []
 
@@ -162,7 +161,7 @@ class Messanger():
         return recv_data
 
 
-app = Messanger(db_name, url, chat_ids, configs)
+app = Messanger(db_name, url, configs)
 app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 secret = getpass.getpass(f"{Fore.RED}Enter your secret: ")
 app.set_secret(secret)
