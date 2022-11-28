@@ -14,8 +14,6 @@ import getpass
 
 init()
 
-url = "http://chat.agent42.ir"
-# url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
 configs = "configs.json"
 
@@ -115,7 +113,7 @@ class Messanger():
                 "chat_id": self.chat_id,
                 "count": self.configs["count"]
             }
-            res = requests.get(url+"/updates", json=data)
+            res = requests.get(self.configs["url"]+"/updates", json=data)
             if not res.ok:
                 self.log(Back.RED+"Unable to get updates")
                 time.sleep(3)
@@ -161,7 +159,7 @@ class Messanger():
         return recv_data
 
 
-app = Messanger(db_name, url, configs)
+app = Messanger(db_name, configs)
 app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
 app.set_secret(secret)
