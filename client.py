@@ -51,7 +51,7 @@ class Messanger():
 
     def __init__(self, db_name, url, configs) -> None:
         self.db_name = db_name
-        self.url = url
+        self.url = self.configs["url"]
         self.configs = self.load_js(configs)
         self.chat_id = self.configs["chat_id"]
         self.secret = None
@@ -113,7 +113,7 @@ class Messanger():
                 "chat_id": self.chat_id,
                 "count": self.configs["count"]
             }
-            res = requests.get(self.configs["url"]+"/updates", json=data)
+            res = requests.get(self.url+"/updates", json=data)
             if not res.ok:
                 self.log(Back.RED+"Unable to get updates")
                 time.sleep(3)
