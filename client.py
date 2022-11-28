@@ -137,7 +137,7 @@ class Messanger():
             pass
 
         data["msg_data"] = cipher_obj.encrypt(_data).decode("utf-8")
-        res = requests.post(url+"/send", json=data)
+        res = requests.post(self.url+"/send", json=data)
         if not res.ok:
             self.log("failed to send msg")
             return False
