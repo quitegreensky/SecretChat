@@ -12,7 +12,6 @@ import getpass
 
 init()
 
-db_name = "mydb_client.json"
 configs = "configs.json"
 
 t_stop = False
@@ -48,8 +47,7 @@ class Cipher:
 
 class Messanger():
 
-    def __init__(self, db_name, configs) -> None:
-        self.db_name = db_name
+    def __init__(self, configs) -> None:
         self.configs = self.load_js(configs)
         self.url = self.configs["url"]
         self.chat_id = self.configs["chat_id"]
@@ -60,8 +58,6 @@ class Messanger():
         self.secret = secret.encode("utf-8")
 
     def save_js(self, dic, path = None):
-        if not path:
-            path = self.db_name
         try:
             with open(path, "wt") as json_file:
                 json.dump(dic, json_file)
@@ -70,8 +66,6 @@ class Messanger():
         return True
 
     def load_js(self, path = None):
-        if not path:
-            path = self.db_name
         try:
             with open(path) as json_file:
                 data = json.load(json_file)
@@ -158,7 +152,7 @@ class Messanger():
         return recv_data
 
 
-app = Messanger(db_name, configs)
+app = Messanger(configs)
 app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
 app.set_secret(secret)
