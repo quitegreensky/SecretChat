@@ -2,6 +2,7 @@ from flask import Flask, request, make_response, jsonify
 import json
 import random
 import string
+import datetime
 
 
 app = Flask(__name__)
@@ -42,6 +43,13 @@ def random_str():
     return res
 
 
+def timestamp():
+    dt = datetime.datetime.now(datetime.timezone.utc)
+    utc_time = dt.replace(tzinfo=datetime.timezone.utc)
+    utc_timestamp = utc_time.timestamp()
+    return utc_timestamp
+
+
 @app.route("/send", methods=["POST"])
 def send_msg():
     data = request.json
@@ -58,13 +66,15 @@ def send_msg():
     db = load_js()
     for chat_id in chat_id_list:
         if not db.get(chat_id):
-            db[chat_id] = {}
+            db[chat_id] = []
         msg_uuid = random_str()
-        db[chat_id][msg_uuid] = {
+        db[chat_id].append({
+            "msg_uuid": msg_uuid,
             "msg_type": msg_type,
             "msg_data": msg_data,
-            "username": username
-            }
+            "username": username,
+            "timestamp": str(timestamp())
+        })
 
     save_js(db)
     return make_response("ok", 200)
@@ -73,40 +83,32 @@ def send_msg():
 @app.route("/updates")
 def get_msg():
     data = request.json
-    chat_ids = data["chat_id"]
-    username = data["username"]
+    chat_id = data["chat_id"]
+    count = data["count"]
 
-    if not msg_validation(chat_ids, username):
+    if not msg_validation(chat_id, count):
         return make_response("error", 400)
 
-    chat_ids_list = chat_ids.split(",")
+    try:
+        count = int(count)
+    except:
+        return make_response("error", 400)
+
+    chat_ids_list = chat_id.split(",")
     db = load_js()
 
-    # filtering data
     data = {}
-    remove_msg_ids = []
-    for chat_id in chat_ids_list:
-        if not db.get(chat_id):
-            continue
+    if not db.get(chat_id):
+        return jsonify({chat_id:[]})
 
-        for msg_id, msg_data in db[chat_id].items():
-            if msg_data["username"] == username:
-                continue
-            if not data.get(chat_id):
-                data[chat_id] = {}
-            data[chat_id][msg_id] = msg_data
-            remove_msg_ids.append(msg_id)
-
-    for chat_id in chat_ids_list:
-        if chat_id not in list(db.keys()):
-            continue
-        elif not db[chat_id]:
-            db.pop(chat_id)
-
-        for msg_id in remove_msg_ids:
-            if not db[chat_id].get(msg_id):
-                continue
-            db[chat_id].pop(msg_id)
+    _count = 0
+    for msg_data in db[chat_id][::-1]:
+        if not data.get(chat_id):
+            data[chat_id] = []
+        data[chat_id].append(msg_data)
+        _count+=1
+        if _count >= count:
+            break
 
     save_js(db)
     return jsonify(data)

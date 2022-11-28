@@ -54,9 +54,10 @@ class Messanger():
     def __init__(self, db_name, url, chat_ids, configs) -> None:
         self.db_name = db_name
         self.url = url
-        self.secret = "secret".encode("utf-8")
-        self.chat_ids = chat_ids
+        self.chat_id = chat_ids
         self.configs = self.load_js(configs)
+        self.secret = self.configs["chat_secret"].encode("utf-8")
+        self.handled_msg = []
 
     def save_js(self, dic, path = None):
         if not path:
@@ -84,13 +85,17 @@ class Messanger():
         print(txt+Style.RESET_ALL)
 
     def new_message_handler(self, chat_id, chat_data):
-        for _uuid, msg in chat_data.items():
-            msg_data = msg["msg_data"]
-            msg_type = msg["msg_type"]
-            username = msg["username"]
-            recv_data = self.decode_message(msg_data, msg_type)
-            if recv_data:
-                self.log(f"{Back.GREEN}{username}: {recv_data}")
+        msg_data = chat_data["msg_data"]
+        msg_type = chat_data["msg_type"]
+        username = chat_data["username"]
+        color = None
+        if username==self.configs["username"]:
+            color = Back.GREEN
+        else:
+            color = Back.BLUE
+        recv_data = self.decode_message(msg_data, msg_type)
+        if recv_data:
+            self.log(f"{color}{username}: {recv_data}")
 
     def update_message(self):
         t = threading.Thread(target=self._update_message)
@@ -98,30 +103,27 @@ class Messanger():
 
     def _update_message(self, *args):
         while True:
+            time.sleep(3)
             data = {
-                "chat_id": self.chat_ids,
-                "username": self.configs["username"]
+                "chat_id": self.chat_id,
+                "count": self.configs["count"]
             }
             res = requests.get(url+"/updates", json=data)
             if not res.ok:
                 self.log(Back.RED+"Unable to get updates")
                 continue
 
-            res_data = res.json()
-            db = self.load_js()
-
-            for res_chat_id, chat_data in res_data.items():
-                if not db.get(res_chat_id):
-                    db[res_chat_id] = {}
-                db[res_chat_id].update(chat_data)
-                self.new_message_handler(res_chat_id, chat_data)
-            self.save_js(db)
-            time.sleep(3)
+            res_data = res.json()[self.chat_id][::-1]
+            for chat_data in res_data:
+                msg_uuid = chat_data["msg_uuid"]
+                if msg_uuid in self.handled_msg:
+                    continue
+                self.handled_msg.append(msg_uuid)
+                self.new_message_handler(msg_uuid, chat_data)
 
     def send_message(self, data, path=None):
         data["username"] = self.configs["username"]
         data["chat_id"] = self.configs["chat_id"]
-        data["chat_secret"] = self.configs["chat_secret"]
 
         cipher_obj = Cipher(self.secret)
         if data["msg_type"]=="txt":
@@ -136,18 +138,6 @@ class Messanger():
             return False
         self.log(f"{Fore.GREEN}Sent")
 
-        # db = self.load_js()
-        # for res_chat_id in data["chat_id"].split(","):
-        #     chat_data = {
-        #         data["msg_uuid"]: {
-        #             "username": data["username"],
-        #             "msg_type": data["msg_type"],
-        #             "msg_data": data["msg_data"]
-        #         }
-        #     }
-        #     db[res_chat_id].update(chat_data)
-        # self.save_js(db)
-
         return True
 
     def decode_message(self, msg_data, msg_type):
@@ -157,21 +147,6 @@ class Messanger():
         else:
             pass
         return recv_data
-
-    def show_history(self, count):
-        db = self.load_js()
-        _count = 0
-        for chat_id, chat_data in list(db.items()):
-            for msg_id, mydata in list(reversed(list(chat_data.items()))):
-                msg_data = mydata["msg_data"]
-                msg_type = mydata["msg_type"]
-                username = mydata["username"]
-                recv_data = self.decode_message(msg_data, msg_type)
-                if recv_data:
-                    self.log(f"{Back.GREEN}{username}: {recv_data}")
-                    count+=1
-                if _count>=count:
-                    return
 
 
 app = Messanger(db_name, url, chat_ids, configs)
@@ -183,14 +158,6 @@ while True:
         continue
 
     if input_data=="--help":
-        continue
-
-    if "--history" in input_data:
-        count = input_data.replace("--history", "").replace(" ","")
-        try:
-            app.show_history(int(count))
-        except:
-            app.log(Fore.RED+"Invalid parameter")
         continue
 
     data = {
