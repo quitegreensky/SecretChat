@@ -11,7 +11,7 @@ init()
 
 url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
-chat_ids = "1"
+chat_ids = "3"
 configs = "configs.json"
 
 class Messanger():
@@ -88,7 +88,6 @@ class Messanger():
             time.sleep(3)
 
     def send_message(self, data, path=None):
-        print(self.configs)
         data["username"] = self.configs["username"]
         data["chat_id"] = self.configs["chat_id"]
         data["chat_secret"] = self.configs["chat_secret"]
@@ -136,7 +135,7 @@ app = Messanger(db_name, url, chat_ids, configs)
 app.update_message()
 
 while True:
-    input_data = input(Fore.CYAN)
+    input_data = input(f"{Fore.CYAN}")
     if len(input_data)==0:
         continue
 
