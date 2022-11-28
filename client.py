@@ -2,17 +2,52 @@ import requests
 import string
 import random
 import json
-from libs.encryption import Cipher
 import threading
 import time
 from colorama import init
 from colorama import Fore, Back, Style
+import base64
+import hashlib
+from Crypto import Random
+from Crypto.Cipher import AES
+
 init()
 
+# url = "http://chat.agent42.ir"
 url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
 chat_ids = "3"
 configs = "configs.json"
+
+
+class Cipher:
+    def __init__(self, key, **kw):
+        self.bs = AES.block_size
+        self.key = hashlib.sha256(key.decode("utf-8").encode()).digest()
+
+    def encrypt(self, raw):
+        raw = self._pad(raw)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return base64.b64encode(iv + cipher.encrypt(raw.encode()))
+
+    def decrypt(self, enc):
+        enc = base64.b64decode(enc)
+        iv = enc[: AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return self._unpad(cipher.decrypt(enc[AES.block_size :])).decode(
+            "utf-8"
+        )
+
+    def _pad(self, s):
+        return s + (self.bs - len(s) % self.bs) * chr(
+            self.bs - len(s) % self.bs
+        )
+
+    @staticmethod
+    def _unpad(s):
+        return s[: -ord(s[len(s) - 1 :])]
+
 
 class Messanger():
 
@@ -70,6 +105,7 @@ class Messanger():
         while True:
             data = {
                 "chat_id": self.chat_ids,
+                "username": self.configs["username"]
             }
             res = requests.get(url+"/updates", json=data)
             if not res.ok:
@@ -105,6 +141,19 @@ class Messanger():
             self.log("failed to send msg")
             return False
         self.log(f"{Fore.GREEN}Sent")
+
+        # db = self.load_js()
+        # for res_chat_id in data["chat_id"].split(","):
+        #     chat_data = {
+        #         data["msg_uuid"]: {
+        #             "username": data["username"],
+        #             "msg_type": data["msg_type"],
+        #             "msg_data": data["msg_data"]
+        #         }
+        #     }
+        #     db[res_chat_id].update(chat_data)
+        # self.save_js(db)
+
         return True
 
     def decode_message(self, msg_data, msg_type):

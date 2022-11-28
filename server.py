@@ -69,8 +69,9 @@ def send_msg():
 def get_msg():
     data = request.json
     chat_ids = data["chat_id"]
+    username = data["username"]
 
-    if not msg_validation(chat_ids):
+    if not msg_validation(chat_ids, username):
         return make_response("error", 400)
 
     chat_ids_list = chat_ids.split(",")
@@ -78,14 +79,29 @@ def get_msg():
 
     # filtering data
     data = {}
+    remove_msg_ids = []
     for chat_id in chat_ids_list:
         if not db.get(chat_id):
             continue
-        data[chat_id] = db[chat_id]
+
+        for msg_id, msg_data in db[chat_id].items():
+            if msg_data["username"] == username:
+                continue
+            if not data.get(chat_id):
+                data[chat_id] = {}
+            data[chat_id][msg_id] = msg_data
+            remove_msg_ids.append(msg_id)
 
     for chat_id in chat_ids_list:
-        if db.get(chat_id):
+        if chat_id not in list(db.keys()):
+            continue
+        elif not db[chat_id]:
             db.pop(chat_id)
+
+        for msg_id in remove_msg_ids:
+            if not db[chat_id].get(msg_id):
+                continue
+            db[chat_id].pop(msg_id)
 
     save_js(db)
     return jsonify(data)
