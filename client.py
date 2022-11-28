@@ -47,7 +47,7 @@ class Cipher:
 
 class Messanger():
 
-    def __init__(self, db_name, url, configs) -> None:
+    def __init__(self, db_name, configs) -> None:
         self.db_name = db_name
         self.url = self.configs["url"]
         self.configs = self.load_js(configs)
