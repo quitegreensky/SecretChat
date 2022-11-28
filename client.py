@@ -163,7 +163,7 @@ class Messanger():
 
 app = Messanger(db_name, url, configs)
 app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
-secret = getpass.getpass(f"{Fore.RED}Enter your secret: ")
+secret = getpass.getpass(f"{Fore.RED}Enter your secret: "+{Fore.RESET})
 app.set_secret(secret)
 
 t_stop = False
