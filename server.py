@@ -39,10 +39,6 @@ def msg_validation(*args):
             return False
     return True
 
-def random_str():
-    res = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    return res
-
 
 def timestamp():
     dt = datetime.datetime.now(datetime.timezone.utc)
@@ -68,9 +64,8 @@ def send_msg():
     for chat_id in chat_id_list:
         if not db.get(chat_id):
             db[chat_id] = []
-        msg_uuid = random_str()
         db[chat_id].append({
-            "msg_uuid": msg_uuid,
+            "msg_uuid": str(timestamp()),
             "msg_type": msg_type,
             "msg_data": msg_data,
             "username": username,
