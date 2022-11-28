@@ -14,8 +14,8 @@ import getpass
 
 init()
 
-url = "http://chat.agent42.ir"
-# url = "http://127.0.0.1:5000"
+# url = "http://chat.agent42.ir"
+url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
 chat_ids = "3"
 configs = "configs.json"
@@ -86,7 +86,7 @@ class Messanger():
         return data
 
     def log(self, txt):
-        print(txt+Style.RESET_ALL)
+        print(txt+Style.RESET_ALL+Fore.RESET+Back.RESET)
 
     def new_message_handler(self, chat_id, chat_data):
         msg_data = chat_data["msg_data"]
@@ -98,6 +98,8 @@ class Messanger():
         else:
             color = Back.BLUE
         recv_data = self.decode_message(msg_data, msg_type)
+        if not recv_data:
+            return
         if recv_data:
             self.log(f"{color}{username}: {recv_data}")
 
@@ -107,7 +109,6 @@ class Messanger():
 
     def _update_message(self, *args):
         while True:
-            time.sleep(3)
             data = {
                 "chat_id": self.chat_id,
                 "count": self.configs["count"]
@@ -115,6 +116,7 @@ class Messanger():
             res = requests.get(url+"/updates", json=data)
             if not res.ok:
                 self.log(Back.RED+"Unable to get updates")
+                time.sleep(3)
                 continue
 
             res_data = res.json()[self.chat_id][::-1]
@@ -124,6 +126,7 @@ class Messanger():
                     continue
                 self.handled_msg.append(msg_uuid)
                 self.new_message_handler(msg_uuid, chat_data)
+            time.sleep(3)
 
     def send_message(self, data, path=None):
         data["username"] = self.configs["username"]
@@ -146,14 +149,18 @@ class Messanger():
     def decode_message(self, msg_data, msg_type):
         cipher_obj = Cipher(self.secret)
         if msg_type=="txt":
-            recv_data = cipher_obj.decrypt(bytes(msg_data, "utf-8"))
+            try:
+                recv_data = cipher_obj.decrypt(bytes(msg_data, "utf-8"))
+            except:
+                self.log(f"{Back.RED}Invalid Secret")
+                return False
         else:
             pass
         return recv_data
 
 
 app = Messanger(db_name, url, chat_ids, configs)
-app.log(f"{Fore.RED}\nConverstation initiated.\n=====================\n")
+app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 secret = getpass.getpass(f"{Fore.RED}Enter your secret: ")
 app.set_secret(secret)
 
