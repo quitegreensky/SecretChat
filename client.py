@@ -10,11 +10,12 @@ import base64
 import hashlib
 from Crypto import Random
 from Crypto.Cipher import AES
+import getpass
 
 init()
 
-# url = "http://chat.agent42.ir"
-url = "http://127.0.0.1:5000"
+url = "http://chat.agent42.ir"
+# url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
 chat_ids = "3"
 configs = "configs.json"
@@ -56,8 +57,11 @@ class Messanger():
         self.url = url
         self.chat_id = chat_ids
         self.configs = self.load_js(configs)
-        self.secret = self.configs["chat_secret"].encode("utf-8")
+        self.secret = None
         self.handled_msg = []
+
+    def set_secret(self, secret):
+        self.secret = secret.encode("utf-8")
 
     def save_js(self, dic, path = None):
         if not path:
@@ -137,7 +141,6 @@ class Messanger():
             self.log("failed to send msg")
             return False
         self.log(f"{Fore.GREEN}Sent")
-
         return True
 
     def decode_message(self, msg_data, msg_type):
@@ -150,8 +153,11 @@ class Messanger():
 
 
 app = Messanger(db_name, url, chat_ids, configs)
+app.log(f"{Fore.RED}\nConverstation initiated.\n=====================\n")
+secret = getpass.getpass(f"{Fore.RED}Enter your secret: ")
+app.set_secret(secret)
+
 app.update_message()
-app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 while True:
     input_data = input(f"{Fore.CYAN}")
     if len(input_data)==0:
