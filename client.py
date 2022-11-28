@@ -15,6 +15,7 @@ init()
 db_name = "mydb_client.json"
 configs = "configs.json"
 
+t_stop = False
 
 class Cipher:
     def __init__(self, key, **kw):
@@ -162,7 +163,6 @@ app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
 secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
 app.set_secret(secret)
 
-t_stop = False
 t = app.update_message()
 
 while True:
