@@ -49,8 +49,8 @@ class Messanger():
 
     def __init__(self, db_name, configs) -> None:
         self.db_name = db_name
-        self.url = self.configs["url"]
         self.configs = self.load_js(configs)
+        self.url = self.configs["url"]
         self.chat_id = self.configs["chat_id"]
         self.secret = None
         self.handled_msg = []
