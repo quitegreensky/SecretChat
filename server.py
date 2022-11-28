@@ -1,5 +1,7 @@
 from flask import Flask, request, make_response, jsonify
 import json
+import random
+import string
 
 
 app = Flask(__name__)
@@ -35,6 +37,10 @@ def msg_validation(*args):
             return False
     return True
 
+def random_str():
+    res = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    return res
+
 
 @app.route("/send", methods=["POST"])
 def send_msg():
@@ -43,9 +49,8 @@ def send_msg():
     username = data["username"]
     msg_type = data["msg_type"]
     msg_data = data["msg_data"]
-    msg_uuid = data["msg_uuid"]
 
-    if not msg_validation(username, chat_ids, msg_type, msg_data, msg_uuid):
+    if not msg_validation(username, chat_ids, msg_type, msg_data):
         return make_response("error", 400)
 
     chat_id_list = chat_ids.split(",")
@@ -54,7 +59,7 @@ def send_msg():
     for chat_id in chat_id_list:
         if not db.get(chat_id):
             db[chat_id] = {}
-
+        msg_uuid = random_str()
         db[chat_id][msg_uuid] = {
             "msg_type": msg_type,
             "msg_data": msg_data,

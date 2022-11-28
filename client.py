@@ -83,11 +83,6 @@ class Messanger():
     def log(self, txt):
         print(txt+Style.RESET_ALL)
 
-    @staticmethod
-    def random_str():
-        res = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-        return res
-
     def new_message_handler(self, chat_id, chat_data):
         for _uuid, msg in chat_data.items():
             msg_data = msg["msg_data"]
@@ -135,7 +130,6 @@ class Messanger():
             pass
 
         data["msg_data"] = cipher_obj.encrypt(_data).decode("utf-8")
-        data["msg_uuid"] = self.random_str()
         res = requests.post(url+"/send", json=data)
         if not res.ok:
             self.log("failed to send msg")
