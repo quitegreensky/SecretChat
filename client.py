@@ -12,36 +12,41 @@ init()
 url = "http://127.0.0.1:5000"
 db_name = "mydb_client.json"
 chat_ids = "1"
-
+configs = "configs.json"
 
 class Messanger():
 
-    def __init__(self, db_name, url, chat_ids) -> None:
+    def __init__(self, db_name, url, chat_ids, configs) -> None:
         self.db_name = db_name
         self.url = url
         self.secret = "secret".encode("utf-8")
         self.chat_ids = chat_ids
+        self.configs = self.load_js(configs)
 
-    def save_js(self, dic):
+    def save_js(self, dic, path = None):
+        if not path:
+            path = self.db_name
         try:
-            with open(self.db_name, "wt") as json_file:
+            with open(path, "wt") as json_file:
                 json.dump(dic, json_file)
         except Exception:
             return False
         return True
 
-    def load_js(self):
+    def load_js(self, path = None):
+        if not path:
+            path = self.db_name
         try:
-            with open(self.db_name) as json_file:
+            with open(path) as json_file:
                 data = json.load(json_file)
         except Exception:
             data = {}
-            with open(self.db_name, "wt") as json_file:
+            with open(path, "wt") as json_file:
                 json.dump(data, json_file)
         return data
 
     def log(self, txt):
-        print(txt)
+        print(txt+Style.RESET_ALL)
 
     @staticmethod
     def random_str():
@@ -50,14 +55,12 @@ class Messanger():
 
     def new_message_handler(self, chat_id, chat_data):
         for _uuid, msg in chat_data.items():
-            cipher_obj = Cipher(self.secret)
             msg_data = msg["msg_data"]
             msg_type = msg["msg_type"]
-            if msg_type=="txt":
-                recv_data = cipher_obj.decrypt(bytes(msg_data, "utf-8"))
-                self.log(f"{Back.GREEN}{chat_id}: {recv_data}")
-            else:
-                pass
+            username = msg["username"]
+            recv_data = self.decode_message(msg_data, msg_type)
+            if recv_data:
+                self.log(f"{Back.GREEN}{username}: {recv_data}")
 
     def update_message(self):
         t = threading.Thread(target=self._update_message)
@@ -85,6 +88,11 @@ class Messanger():
             time.sleep(3)
 
     def send_message(self, data, path=None):
+        print(self.configs)
+        data["username"] = self.configs["username"]
+        data["chat_id"] = self.configs["chat_id"]
+        data["chat_secret"] = self.configs["chat_secret"]
+
         cipher_obj = Cipher(self.secret)
         if data["msg_type"]=="txt":
             _data = data["msg_data"]
@@ -92,7 +100,6 @@ class Messanger():
             pass
 
         data["msg_data"] = cipher_obj.encrypt(_data).decode("utf-8")
-
         data["msg_uuid"] = self.random_str()
         res = requests.post(url+"/send", json=data)
         if not res.ok:
@@ -101,13 +108,51 @@ class Messanger():
         self.log(f"{Fore.GREEN}Sent")
         return True
 
-app = Messanger(db_name, url, chat_ids)
+    def decode_message(self, msg_data, msg_type):
+        cipher_obj = Cipher(self.secret)
+        if msg_type=="txt":
+            recv_data = cipher_obj.decrypt(bytes(msg_data, "utf-8"))
+        else:
+            pass
+        return recv_data
 
-data = {
-    "chat_id": "1",
-    "chat_secret": "secret",
-    "msg_type": "txt",
-    "msg_data": "hello"
-}
-app.send_message(data, "image.png")
+    def show_history(self, count):
+        db = self.load_js()
+        _count = 0
+        for chat_id, chat_data in list(db.items()):
+            for msg_id, mydata in list(reversed(list(chat_data.items()))):
+                msg_data = mydata["msg_data"]
+                msg_type = mydata["msg_type"]
+                username = mydata["username"]
+                recv_data = self.decode_message(msg_data, msg_type)
+                if recv_data:
+                    self.log(f"{Back.GREEN}{username}: {recv_data}")
+                    count+=1
+                if _count>=count:
+                    return
+
+
+app = Messanger(db_name, url, chat_ids, configs)
 app.update_message()
+
+while True:
+    input_data = input(Fore.CYAN)
+    if len(input_data)==0:
+        continue
+
+    if input_data=="--help":
+        continue
+
+    if "--history" in input_data:
+        count = input_data.replace("--history", "").replace(" ","")
+        try:
+            app.show_history(int(count))
+        except:
+            app.log(Fore.RED+"Invalid parameter")
+        continue
+
+    data = {
+        "msg_type": "txt",
+        "msg_data": input_data
+    }
+    app.send_message(data)

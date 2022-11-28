@@ -40,11 +40,12 @@ def msg_validation(*args):
 def send_msg():
     data = request.json
     chat_ids = data["chat_id"]
+    username = data["username"]
     msg_type = data["msg_type"]
     msg_data = data["msg_data"]
     msg_uuid = data["msg_uuid"]
 
-    if not msg_validation(chat_ids, msg_type, msg_data, msg_uuid):
+    if not msg_validation(username, chat_ids, msg_type, msg_data, msg_uuid):
         return make_response("error", 400)
 
     chat_id_list = chat_ids.split(",")
@@ -56,7 +57,8 @@ def send_msg():
 
         db[chat_id][msg_uuid] = {
             "msg_type": msg_type,
-            "msg_data": msg_data
+            "msg_data": msg_data,
+            "username": username
             }
 
     save_js(db)
