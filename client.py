@@ -15,7 +15,7 @@ init()
 
 configs = "configs.json"
 
-os.environ["t_stop"] = False
+os.environ["t_stop"] = "0"
 
 class Cipher:
     def __init__(self, key, **kw):
@@ -101,7 +101,7 @@ class Messanger():
 
     def _update_message(self, *args):
         while True:
-            if os.environ["t_stop"]:
+            if os.environ["t_stop"] == "1":
                 return
             data = {
                 "chat_id": self.chat_id,
@@ -169,7 +169,7 @@ def main():
             continue
 
         if input_data=="--end":
-            os.environ["t_stop"] = True
+            os.environ["t_stop"] = "1"
             t.join()
             exit()
 
