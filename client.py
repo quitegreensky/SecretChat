@@ -190,13 +190,13 @@ def main():
     app = Messanger(configs)
     if not app.test_connection():
         app.log(f"{Fore.RED}\nConnection Failed.\n=====================")
-        raise Exception("Connection Failed")
+        input(f"Press any key to exit...")
 
     app.log(f"{Fore.GREEN}\nConnection Established.\n=====================")
     secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
     if not secret:
         app.log(f"{Fore.RED}Secret cannot be empty")
-        raise Exception("Invalid secret")
+        input(f"Press any key to exit...")
 
     app.set_secret(secret)
     t = app.update_message()
