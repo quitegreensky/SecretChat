@@ -57,6 +57,19 @@ class Messanger():
 
     def __init__(self, configs) -> None:
         self.configs = self.load_js(configs)
+        if not self.configs:
+            self.log(f"{Back.RED}Couldn't find configs.json")
+            self.configs = {}
+
+        url = self.configs.get("url")
+        if not url:
+            url = input("Enter server 'url' eg http://site.com : ")
+        self.url = url
+
+        chat_id = self.configs.get("chat_id")
+        if not chat_id:
+            chat_id = input("Enter 'chat_id': ")
+        self.chat_id = chat_id
 
         interval = self.configs.get("interval")
         if not interval:
@@ -75,8 +88,6 @@ class Messanger():
 
         self.timeout = 10
         self.invalid_secret_warning = self.configs.get("invalid_secret_warning")
-        self.url = self.configs["url"]
-        self.chat_id = self.configs["chat_id"]
         self.secret = None
         self._handled_msg = []
         self.t = None
@@ -105,9 +116,7 @@ class Messanger():
             with open(path) as json_file:
                 data = json.load(json_file)
         except Exception:
-            data = {}
-            with open(path, "wt") as json_file:
-                json.dump(data, json_file)
+            return False
         return data
 
     def log(self, txt):
