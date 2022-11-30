@@ -1,16 +1,11 @@
 from flask import Flask, request, make_response, jsonify
 import json
-import random
-import string
 import datetime
-
-random.seed()
 
 app = Flask(__name__)
 db_name = "mydb.json"
 
-allowed_ids = []
-disallowed_ids = []
+MAX_REPLAYS_COUNT = 20 # Max amount of history to replay
 
 
 def save_js(dic):
@@ -61,12 +56,14 @@ def send_msg():
     db = load_js()
     if not db.get(chat_id):
         db[chat_id] = []
+
+    _ts = str(timestamp())
     db[chat_id].append({
-        "msg_uuid": str(timestamp()),
+        "msg_uuid": _ts,
         "msg_type": msg_type,
         "msg_data": msg_data,
         "username": username,
-        "timestamp": str(timestamp())
+        "timestamp": _ts
     })
 
     save_js(db)
@@ -98,9 +95,9 @@ def get_msg():
         if not data.get(chat_id):
             data[chat_id] = []
         data[chat_id].append(msg_data)
-        # _count+=1
-        # if _count >= count:
-        #     break
+        _count+=1
+        if _count>MAX_REPLAYS_COUNT and MAX_REPLAYS_COUNT!=0:
+            break;
 
     save_js(db)
     return jsonify(data)

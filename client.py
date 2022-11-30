@@ -12,6 +12,9 @@ from Crypto import Random
 from Crypto.Cipher import AES
 import getpass
 import os
+import random
+import platform
+import subprocess
 
 init()
 
@@ -52,10 +55,27 @@ class Messanger():
 
     def __init__(self, configs) -> None:
         self.configs = self.load_js(configs)
+
+        interval = self.configs.get("interval")
+        if not interval:
+            interval = 3
+        self.interval = interval
+
+        username = self.configs.get("username")
+        if not username:
+            username = "User"+str(random.randint(1,100))
+        self.username = username
+
+        count = self.configs.get("count")
+        if not count:
+            count = 10
+        self.count = count
+
+        self.timeout = 10
         self.url = self.configs["url"]
         self.chat_id = self.configs["chat_id"]
         self.secret = None
-        self.handled_msg = []
+        self._handled_msg = []
 
     def set_secret(self, secret):
         self.secret = secret.encode("utf-8")
@@ -85,12 +105,15 @@ class Messanger():
         msg_data = chat_data["msg_data"]
         msg_type = chat_data["msg_type"]
         username = chat_data["username"]
+
         color = None
-        if username==self.configs["username"]:
+        if username==self.username:
             color = Back.GREEN
         else:
             color = Back.BLUE
+
         recv_data = self.decode_message(msg_data, msg_type)
+
         if not recv_data:
             return
         if recv_data:
@@ -101,32 +124,41 @@ class Messanger():
         t.start()
         return t
 
+    def test_connection(self):
+        self.log(f"{Back.CYAN}Testing Connection to {self.url}")
+        param = '-n' if platform.system().lower()=='windows' else '-c'
+        url = self.url
+        url = url.replace("http://", "")
+        url = url.replace("https://", "")
+        command = ['ping', param, '1', url]
+        return subprocess.call(command) == 0
+
     def _update_message(self, *args):
         while True:
             if os.environ["t_stop"] == "1":
                 return
             data = {
                 "chat_id": self.chat_id,
-                "count": self.configs["count"]
+                "count": self.count
             }
-            res = requests.get(self.url+"/updates", json=data)
+            res = requests.get(self.url+"/updates", json=data , timeout=self.timeout)
             if not res.ok:
                 self.log(Back.RED+"Unable to get updates")
-                time.sleep(3)
+                time.sleep(self.interval)
                 continue
 
             res_data = res.json()[self.chat_id][::-1]
             for chat_data in res_data:
                 msg_uuid = chat_data["msg_uuid"]
-                if msg_uuid in self.handled_msg:
+                if msg_uuid in self._handled_msg:
                     continue
-                self.handled_msg.append(msg_uuid)
+                self._handled_msg.append(msg_uuid)
                 self.new_message_handler(msg_uuid, chat_data)
-            time.sleep(3)
+            time.sleep(self.interval)
 
     def send_message(self, data, path=None):
-        data["username"] = self.configs["username"]
-        data["chat_id"] = self.configs["chat_id"]
+        data["username"] = self.username
+        data["chat_id"] = self.chat_id
 
         cipher_obj = Cipher(self.secret)
         if data["msg_type"]=="txt":
@@ -135,7 +167,7 @@ class Messanger():
             pass
 
         data["msg_data"] = cipher_obj.encrypt(_data).decode("utf-8")
-        res = requests.post(self.url+"/send", json=data)
+        res = requests.post(self.url+"/send", json=data, timeout=self.timeout)
         if not res.ok:
             self.log("failed to send msg")
             return False
@@ -156,10 +188,17 @@ class Messanger():
 
 def main():
     app = Messanger(configs)
-    app.log(f"{Fore.RED}\nConverstation initiated.\n=====================")
-    secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
-    app.set_secret(secret)
+    if not app.test_connection():
+        app.log(f"{Fore.RED}\nConnection Failed.\n=====================")
+        raise Exception("Connection Failed")
 
+    app.log(f"{Fore.GREEN}\nConnection Established.\n=====================")
+    secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
+    if not secret:
+        app.log(f"{Fore.RED}Secret cannot be empty")
+        raise Exception("Invalid secret")
+
+    app.set_secret(secret)
     t = app.update_message()
 
     while True:
