@@ -217,14 +217,14 @@ def main():
     app = Messanger(configs)
     app.log(f"{Back.CYAN}{__appname__} by {__author__} version {__version__}")
     if not app.test_connection():
-        input(f"Press any key to exit...")
+        input(f"Press enter key to exit...")
         app.end_app()
 
     secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
     app.log(f"{Fore.CYAN}Conversation started...\n=====================")
     if not secret:
         app.log(f"{Fore.RED}Secret cannot be empty")
-        input(f"Press any key to exit...")
+        input(f"Press enter key to exit...")
         app.end_app()
 
     app.set_secret(secret)
