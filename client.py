@@ -20,10 +20,10 @@ init()
 
 configs = "configs.json"
 
-os.environ["t_stop"] = "0"
 
 class Cipher:
     def __init__(self, key, **kw):
+        os.environ["t_stop"] = "0"
         self.bs = AES.block_size
         self.key = hashlib.sha256(key.decode("utf-8").encode()).digest()
 
@@ -72,10 +72,20 @@ class Messanger():
         self.count = count
 
         self.timeout = 10
+        self.invalid_secret_warning = self.configs.get("invalid_secret_warning")
         self.url = self.configs["url"]
         self.chat_id = self.configs["chat_id"]
         self.secret = None
         self._handled_msg = []
+        self.t = None
+        os.environ["t_stop"] = "0"
+
+    def end_app(self):
+        self.log(f"Ending app...")
+        os.environ["t_stop"] = "1"
+        if self.t:
+            self.t.join()
+        exit()
 
     def set_secret(self, secret):
         self.secret = secret.encode("utf-8")
@@ -120,18 +130,22 @@ class Messanger():
             self.log(f"{color}{username}: {recv_data}")
 
     def update_message(self):
-        t = threading.Thread(target=self._update_message)
-        t.start()
-        return t
+        self.t = threading.Thread(target=self._update_message)
+        self.t.start()
 
     def test_connection(self):
-        self.log(f"{Back.CYAN}Testing Connection to {self.url}")
+        self.log(f"{Back.CYAN}Testing connection to {self.url}")
         param = '-n' if platform.system().lower()=='windows' else '-c'
         url = self.url
         url = url.replace("http://", "")
         url = url.replace("https://", "")
-        command = ['ping', param, '1', url]
-        return subprocess.call(command) == 0
+        command = ['ping', param, '2', url]
+        res = subprocess.call(command) ==0
+        if res:
+            self.log(f"{Back.GREEN}Connection established {url}")
+        else:
+            self.log(f"{Back.RED}Connection error {url}")
+        return res
 
     def _update_message(self, *args):
         while True:
@@ -180,26 +194,28 @@ class Messanger():
             try:
                 recv_data = cipher_obj.decrypt(bytes(msg_data, "utf-8"))
             except:
-                self.log(f"{Back.RED}Invalid Secret")
-                return False
+                recv_data = None
         else:
             pass
+        if not recv_data and self.invalid_secret_warning:
+            self.log(f"{Back.RED}Invalid Secret")
         return recv_data
 
 def main():
     app = Messanger(configs)
     if not app.test_connection():
-        app.log(f"{Fore.RED}\nConnection Failed.\n=====================")
         input(f"Press any key to exit...")
+        app.end_app()
 
-    app.log(f"{Fore.GREEN}\nConnection Established.\n=====================")
     secret = getpass.getpass(f"{Fore.RED}Enter your secret:{Fore.RESET}")
+    app.log(f"{Fore.CYAN}Conversation started...\n=====================")
     if not secret:
         app.log(f"{Fore.RED}Secret cannot be empty")
         input(f"Press any key to exit...")
+        app.end_app()
 
     app.set_secret(secret)
-    t = app.update_message()
+    app.update_message()
 
     while True:
         input_data = input("")
@@ -210,9 +226,7 @@ def main():
             continue
 
         if input_data=="--end":
-            os.environ["t_stop"] = "1"
-            t.join()
-            exit()
+            app.end_app()
 
         data = {
             "msg_type": "txt",
