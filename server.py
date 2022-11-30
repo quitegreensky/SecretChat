@@ -1,3 +1,5 @@
+__version__ = "1.1.0"
+
 from flask import Flask, request, make_response, jsonify
 import json
 import datetime
@@ -40,6 +42,11 @@ def timestamp():
     utc_time = dt.replace(tzinfo=datetime.timezone.utc)
     utc_timestamp = utc_time.timestamp()
     return utc_timestamp
+
+
+@app.route("/version")
+def version():
+    return __version__
 
 
 @app.route("/send", methods=["POST"])

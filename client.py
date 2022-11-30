@@ -1,4 +1,6 @@
 __version__ = "1.1.0"
+__appname__ = "SecretChat"
+__author__ = "quitegreensky"
 
 import requests
 import json
@@ -135,17 +137,27 @@ class Messanger():
 
     def test_connection(self):
         self.log(f"{Back.CYAN}Testing connection to {self.url}")
-        param = '-n' if platform.system().lower()=='windows' else '-c'
         url = self.url
+
+        param = '-n' if platform.system().lower()=='windows' else '-c'
         url = url.replace("http://", "")
         url = url.replace("https://", "")
         command = ['ping', param, '2', url]
-        res = subprocess.call(command) ==0
-        if res:
-            self.log(f"{Back.GREEN}Connection established {url}")
-        else:
+        connection_res = subprocess.call(command) ==0
+
+        res = requests.get(self.url+"/version", timeout=self.timeout)
+        if not res.ok or not connection_res:
             self.log(f"{Back.RED}Connection error {url}")
-        return res
+            if connection_res and not res.ok:
+                self.log(f"{Back.RED}Server responds but it's not installed correctly")
+            return False
+
+        versoin = res.text
+        if versoin!=__version__:
+            self.log(f"{Back.YELLOW}Warning: The server is using a different version: {versoin}")
+
+        self.log(f"{Back.GREEN}Connection established {url}")
+        return True
 
     def _update_message(self, *args):
         while True:
@@ -203,6 +215,7 @@ class Messanger():
 
 def main():
     app = Messanger(configs)
+    app.log(f"{Back.CYAN}{__appname__} by {__author__} version {__version__}")
     if not app.test_connection():
         input(f"Press any key to exit...")
         app.end_app()
