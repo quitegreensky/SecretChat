@@ -222,6 +222,7 @@ class Messanger():
             self.log(f"{Back.RED}Invalid Secret")
         return recv_data
 
+
 def main():
     app = Messanger(configs)
     app.log(f"{Back.CYAN}{__appname__} by {__author__} version {__version__}")
@@ -240,7 +241,7 @@ def main():
     app.update_message()
 
     while True:
-        input_data = input("")
+        input_data = input(">> ")
         if len(input_data)==0:
             continue
 
